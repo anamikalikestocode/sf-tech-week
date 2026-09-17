@@ -117,12 +117,9 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
 }
 
 function InitialEventGrid({ events }: { events: TechWeekEvent[] }) {
-  const initial = [...events]
-    .sort((a, b) => {
-      const d = a.date.localeCompare(b.date);
-      return d !== 0 ? d : a.time.localeCompare(b.time);
-    })
-    .slice(0, 60);
+  // Match the directory's default sort (most popular) so the server-rendered
+  // fallback doesn't reshuffle when the client hydrates.
+  const initial = [...events].sort((a, b) => confirmedCount(b) - confirmedCount(a)).slice(0, 60);
 
   return (
     <div className="min-h-screen bg-[#E9E2D3]">

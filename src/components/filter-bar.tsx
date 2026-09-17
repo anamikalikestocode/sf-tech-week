@@ -32,14 +32,10 @@ interface FilterBarProps {
 }
 
 const SORT_OPTIONS = [
-  { value: "date", label: "Date & Time" },
   { value: "popular", label: "Most Popular" },
+  { value: "date", label: "Date & Time" },
   { value: "filling", label: "Filling Fast" },
-  { value: "available", label: "Spots Available" },
-  { value: "oversubscribed", label: "Most Oversubscribed" },
-  { value: "closing", label: "Closing Fast" },
-  { value: "interest", label: "Most Interest" },
-  { value: "selective", label: "Most Selective" },
+  { value: "hardest", label: "Hardest to Get In" },
 ] as const;
 
 const TIMES = ["Morning", "Afternoon", "Evening", "Noon"];

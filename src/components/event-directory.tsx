@@ -90,47 +90,31 @@ export function deriveNeighborhoods(events: TechWeekEvent[]): string[] {
 function sortEvents(events: TechWeekEvent[], sort: string): TechWeekEvent[] {
   const copy = [...events];
   switch (sort) {
-    case "selective": {
-      // Lowest acceptance rate first; events without a real rate go last.
-      return copy.sort((a, b) => {
-        const ra = getAcceptanceRate(a);
-        const rb = getAcceptanceRate(b);
-        if (ra === null && rb === null) return getInterest(b) - getInterest(a);
-        if (ra === null) return 1;
-        if (rb === null) return -1;
-        return ra - rb;
-      });
-    }
-    case "interest":
-      return copy.sort((a, b) => getInterest(b) - getInterest(a));
-    case "closing": {
-      // Fewest spots left first; uncapped / unknown last.
+    case "popular":
+      return copy.sort((a, b) => getGuestCount(b) - getGuestCount(a));
+    case "filling": {
+      // Fewest spots left first (capped events), then by how full; uncapped last.
       return copy.sort((a, b) => {
         const la = spotsLeft(a), lb = spotsLeft(b);
         if (la === null && lb === null) return getInterest(b) - getInterest(a);
         if (la === null) return 1;
         if (lb === null) return -1;
-        if (la === 0 && lb !== 0) return 1; // full ones after "almost full"
+        if (la === 0 && lb !== 0) return 1; // already full goes after "almost full"
         if (lb === 0 && la !== 0) return -1;
-        return la - lb;
+        return la - lb || getFillPct(b) - getFillPct(a);
       });
     }
-    case "oversubscribed": {
-      return copy.sort((a, b) => (demandRatio(b) ?? -1) - (demandRatio(a) ?? -1));
-    }
-    case "popular":
-      return copy.sort((a, b) => getGuestCount(b) - getGuestCount(a));
-    case "filling":
-      return copy.sort((a, b) => getFillPct(b) - getFillPct(a));
-    case "available": {
-      return copy.sort((a, b) => {
-        const aSpots = getSpotsRemaining(a);
-        const bSpots = getSpotsRemaining(b);
-        const aFinite = isFinite(aSpots) ? 0 : 1;
-        const bFinite = isFinite(bSpots) ? 0 : 1;
-        if (aFinite !== bFinite) return aFinite - bFinite;
-        return bSpots - aSpots;
-      });
+    case "hardest": {
+      // Oversubscription (demand vs cap) first; real acceptance rate as a
+      // tie-breaker when Partiful exposes one; everything else after.
+      const score = (e: TechWeekEvent) => {
+        const r = demandRatio(e);
+        const acc = getAcceptanceRate(e);
+        if (r !== null && r >= 1) return r + (acc !== null ? 1 - acc : 0);
+        if (acc !== null) return 1 - acc;
+        return -1;
+      };
+      return copy.sort((a, b) => score(b) - score(a) || getGuestCount(b) - getGuestCount(a));
     }
     case "date":
     default:
@@ -173,7 +157,7 @@ export function EventDirectory({
   );
   const [sort, setSort] = useQueryState(
     "sort",
-    parseAsString.withDefault("date")
+    parseAsString.withDefault("popular")
   );
   const [selectedVibes, setSelectedVibes] = useQueryState(
     "vibe",
