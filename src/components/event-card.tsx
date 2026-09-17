@@ -1,7 +1,7 @@
 "use client";
 import type { TechWeekEvent } from "@/lib/events";
 import { confirmed, demand, spotsLeft, venueName } from "@/lib/insights";
-import { Lock, EyeOff } from "lucide-react";
+import { Lock } from "lucide-react";
 import { trackRsvpClick } from "@/lib/session";
 
 function formatTime(time: string): string {
@@ -30,16 +30,6 @@ function StatusBadge({ event }: { event: TechWeekEvent }) {
   }
   const left = spotsLeft(event);
   if (left !== null && left > 0 && left <= 20) return <span className={cls + "bg-[#00FF9C]/20 text-[#0A8F5A]"}>{left} left</span>;
-  if (p?.countsReconstructed) {
-    return (
-      <span
-        className="flex shrink-0 items-center gap-1 rounded-full border border-[#DDD3BD] bg-[#F0E8D9] px-2 py-0.5 text-[10.5px] font-medium text-[#766E5C]"
-        title="The host turned off Partiful's guest count. These numbers come from the live guest list."
-      >
-        <EyeOff className="size-2.5" /> Hidden by host
-      </span>
-    );
-  }
   return null;
 }
 
