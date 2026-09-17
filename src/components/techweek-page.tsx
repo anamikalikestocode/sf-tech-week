@@ -55,51 +55,55 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
     <main className="min-h-screen bg-[#E9E2D3]">
       <div className="border-b border-[#DDD3BD] bg-[#E9E2D3]">
         <div className="mx-auto max-w-[1200px] px-[22px] pb-3 pt-10">
-          {/* Kicker */}
-          <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#766E5C]">
-            <span className="flex items-center gap-1.5">
-              <span className="relative inline-flex size-2">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#00FF9C] opacity-60" />
-                <span className="relative inline-flex size-2 rounded-full bg-[#00FF9C]" />
-              </span>
-              <span className="text-[#0A8F5A]">Live</span>
-            </span>
-            <span>{city.dateRange}</span>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+            <div className="min-w-0">
+              {/* Kicker */}
+              <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#766E5C]">
+                <span className="flex items-center gap-1.5">
+                  <span className="relative inline-flex size-2">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#00FF9C] opacity-60" />
+                    <span className="relative inline-flex size-2 rounded-full bg-[#00FF9C]" />
+                  </span>
+                  <span className="text-[#0A8F5A]">Live</span>
+                </span>
+                <span>{city.dateRange}</span>
+              </div>
+
+              <h1 className="font-extrabold leading-[0.98] tracking-[-0.035em] text-[#1C1A14]" style={{ fontSize: "clamp(36px,5.4vw,60px)" }}>
+                {city.title}
+              </h1>
+
+              <p className="mt-3 max-w-[600px] text-base leading-[1.55] text-[#766E5C]">
+                The a16z tech week website is kinda bad, so here&apos;s a better one.
+              </p>
+              <p className="mt-1.5 text-sm font-medium text-[#766E5C]">
+                x:{" "}
+                <a
+                  href="https://x.com/anamika__x"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#0A8F5A] underline underline-offset-2 transition-opacity hover:opacity-80"
+                >
+                  @anamika__x
+                </a>
+              </p>
+            </div>
+
+            {/* Stat ticker — parallel to the title on desktop, below it on phones */}
+            {events.length > 0 ? (
+              <div className="grid w-full shrink-0 grid-cols-2 items-stretch divide-x divide-[#CDC1A6] rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] sm:mt-9 sm:flex sm:w-auto">
+                <StatCell label="Events" value={events.length.toLocaleString()} />
+                <StatCell label="Going" value={totalGuests.toLocaleString()} accent title="Confirmed guests across every event with Partiful data" />
+                {avgAcceptance !== null && (
+                  <StatCell label="Avg accepted" value={`${avgAcceptance}%`} accent title={`Across ${rated.length} application events with visible applicant pools`} />
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] px-5 py-4 text-sm text-[#766E5C]">
+                No event data loaded yet. Run <code className="rounded bg-[#E9E2D3] px-1.5 py-0.5 text-[12px]">npm run scrape:{slug}</code> to build the snapshot.
+              </div>
+            )}
           </div>
-
-          <h1 className="font-extrabold leading-[0.98] tracking-[-0.035em] text-[#1C1A14]" style={{ fontSize: "clamp(36px,5.4vw,60px)" }}>
-            {city.title}
-          </h1>
-
-          <p className="mt-3 max-w-[600px] text-base leading-[1.55] text-[#766E5C]">
-            The a16z tech week website is kinda bad, so here&apos;s a better one.
-          </p>
-          <p className="mt-1.5 text-sm font-medium text-[#766E5C]">
-            x:{" "}
-            <a
-              href="https://x.com/anamika__x"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#0A8F5A] underline underline-offset-2 transition-opacity hover:opacity-80"
-            >
-              @anamika__x
-            </a>
-          </p>
-
-          {/* Stat ticker */}
-          {events.length > 0 ? (
-            <div className="mt-5 grid w-full grid-cols-4 items-stretch divide-x divide-[#CDC1A6] rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] sm:w-fit sm:flex">
-              <StatCell label="Events" value={events.length.toLocaleString()} />
-              <StatCell label="Going" value={totalGuests.toLocaleString()} accent title="Confirmed guests across every event with Partiful data" />
-              {avgAcceptance !== null && (
-                <StatCell label="Avg accepted" value={`${avgAcceptance}%`} accent title={`Across ${rated.length} application events with visible applicant pools`} />
-              )}
-            </div>
-          ) : (
-            <div className="mt-5 rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] px-5 py-4 text-sm text-[#766E5C]">
-              No event data loaded yet. Run <code className="rounded bg-[#E9E2D3] px-1.5 py-0.5 text-[12px]">npm run scrape:{slug}</code> to build the snapshot.
-            </div>
-          )}
         </div>
       </div>
 
