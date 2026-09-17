@@ -1,0 +1,20 @@
+/node_modules
+/.next/
+/out/
+/build
+.DS_Store
+*.pem
+npm-debug.log*
+.env*
+!.env.example
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Playwright scraper browser profile (scripts/scrape-techweek.mjs)
+.playwright-profile*/
+# scraper run logs
+data/*.log
+data/sf-partiful-rich.json
+data/sf-partiful-graph.json
+data/*.log
