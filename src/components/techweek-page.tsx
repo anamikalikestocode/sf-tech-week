@@ -4,10 +4,7 @@ import { CITIES, type CitySlug } from "@/lib/cities";
 import type { TechWeekEvent } from "@/lib/events";
 import { EventDirectory } from "@/components/event-directory";
 import { EventCard } from "@/components/event-card";
-import { FactsStrip } from "@/components/facts-strip";
-import { Leaderboards } from "@/components/leaderboards";
-import { computeFacts, computeLeaderboards, collisionMap, collisions, popularityMap, computeMoney, moneyLeaderboard, fmtRange, fmtMoney } from "@/lib/insights";
-import { momentumFacts, momentumLeaderboard } from "@/lib/momentum";
+import { collisionMap, collisions, popularityMap, computeMoney, fmtRange } from "@/lib/insights";
 
 function StatCell({
   label,
@@ -69,22 +66,7 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
       : null;
 
   const updated = formatScrapedAt(scrapedAt, city.timeZone);
-  const facts = [...momentumFacts(events), ...computeFacts(events)];
   const money = computeMoney(events);
-  const moneyBoard = moneyLeaderboard(events);
-  const hotBoard = momentumLeaderboard(events);
-  const boards = [hotBoard, moneyBoard, ...computeLeaderboards(events)].filter((b): b is NonNullable<typeof b> => !!b);
-  if (money.estimated > 0) {
-    facts.splice(1, 0, {
-      stat: fmtRange(money.hostLow, money.hostHigh),
-      text: `is what hosts have taken home from tickets on Partiful so far (${money.tickets.toLocaleString()} tickets across ${money.estimated} paid events). Partiful's cut: ${fmtRange(money.partifulLow, money.partifulHigh)}.`,
-    });
-  } else if (money.partifulFloor > 0) {
-    facts.splice(1, 0, {
-      stat: `≥ ${fmtMoney(money.partifulFloor)}`,
-      text: `is Partiful's guaranteed take from the $2-per-ticket flat fee across ${money.paidEvents} paid events, before its 10%.`,
-    });
-  }
 
   return (
     <main className="min-h-screen bg-[#E9E2D3]">
@@ -156,9 +138,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
         first 60 events) so browsers that don't finish hydrating (in-app
         browsers opened from a tweet) still see content.
       */}
-      <FactsStrip facts={facts} />
-      <Leaderboards boards={boards} />
-
       <Suspense fallback={<InitialEventGrid events={events} />}>
         <EventDirectory events={events} city={city} />
       </Suspense>
