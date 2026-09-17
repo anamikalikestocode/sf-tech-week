@@ -37,14 +37,6 @@ function getFillPct(e: TechWeekEvent): number {
   return p.guestCount;
 }
 
-function getSpotsRemaining(e: TechWeekEvent): number {
-  const p = e.partiful;
-  if (!p) return Infinity;
-  if (!p.isCapped || !p.maxCapacity) return Infinity;
-  if (p.atCapacity) return 0;
-  return Math.max(0, p.maxCapacity - p.guestCount);
-}
-
 // Acceptance rate is only meaningful when Partiful exposed a real applicant
 // pool (applied > approved). Otherwise every APPLY event reads as 100%.
 function getAcceptanceRate(e: TechWeekEvent): number | null {
