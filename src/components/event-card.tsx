@@ -107,9 +107,9 @@ function StatusBadge({ event }: { event: TechWeekEvent }) {
  *   1. Real acceptance data (applied > approved): green approved / red rejected+pending.
  *   2. Capped event: green confirmed / grey remaining; when demand exceeds the
  *      cap the bar becomes in-vs-shut-out (green cap / red overflow).
- *   3. Nothing usable: render nothing.
+ *   3. Uncapped with no applicant data: no bar (nothing honest to show).
  */
-function CapacityBar({ event, popularity }: { event: TechWeekEvent; popularity?: number }) {
+function CapacityBar({ event }: { event: TechWeekEvent }) {
   const p = event.partiful;
   if (!p || p.countsHidden) return null;
 
@@ -144,14 +144,6 @@ function CapacityBar({ event, popularity }: { event: TechWeekEvent; popularity?:
       danger = left === 0;
       title = `${inCount.toLocaleString()} in, ${left.toLocaleString()} left of ${cap.toLocaleString()}`;
     }
-  } else if (typeof popularity === "number" && inCount > 0) {
-    // Uncapped: no cap, no applicant pool. Show crowd size relative to every
-    // other event this week instead.
-    greenPct = Math.max(2, popularity * 100);
-    label = "popularity";
-    value = `top ${Math.max(1, Math.round((1 - popularity) * 100))}%`;
-    danger = false;
-    title = `${inCount.toLocaleString()} confirmed — a bigger crowd than ${Math.round(popularity * 100)}% of events (no cap, so nothing to fill)`;
   } else {
     return null;
   }
@@ -172,9 +164,8 @@ function CapacityBar({ event, popularity }: { event: TechWeekEvent; popularity?:
 
 /**
  * @param others how many other events start in the same hour (collision count)
- * @param popularity crowd-size percentile among all events (0..1), for the bar on uncapped events
  */
-export function EventCard({ event, others = 0, popularity }: { event: TechWeekEvent; others?: number; popularity?: number }) {
+export function EventCard({ event, others = 0 }: { event: TechWeekEvent; others?: number }) {
   const p = event.partiful;
   const isApply = p?.guestAction === "APPLY";
 
@@ -230,7 +221,7 @@ export function EventCard({ event, others = 0, popularity }: { event: TechWeekEv
         )}
       </h3>
 
-      <CapacityBar event={event} popularity={popularity} />
+      <CapacityBar event={event} />
 
       {/* Meta: date · time · location */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-[#766E5C]">

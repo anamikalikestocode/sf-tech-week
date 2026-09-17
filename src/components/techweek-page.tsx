@@ -4,7 +4,7 @@ import { CITIES, type CitySlug } from "@/lib/cities";
 import type { TechWeekEvent } from "@/lib/events";
 import { EventDirectory } from "@/components/event-directory";
 import { EventCard } from "@/components/event-card";
-import { collisionMap, collisions, popularityMap, computeMoney, fmtRange } from "@/lib/insights";
+import { collisionMap, collisions, computeMoney, fmtRange } from "@/lib/insights";
 
 function StatCell({
   label,
@@ -147,7 +147,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
 
 function InitialEventGrid({ events }: { events: TechWeekEvent[] }) {
   const cm = collisionMap(events);
-  const pop = popularityMap(events);
   const initial = [...events]
     .sort((a, b) => {
       const d = a.date.localeCompare(b.date);
@@ -160,7 +159,7 @@ function InitialEventGrid({ events }: { events: TechWeekEvent[] }) {
       <div className="mx-auto max-w-[1200px] px-[22px] py-6">
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {initial.map((event) => (
-            <EventCard key={event.id} event={event} others={collisions(event, cm)} popularity={pop.get(event.id)} />
+            <EventCard key={event.id} event={event} others={collisions(event, cm)} />
           ))}
         </div>
       </div>
