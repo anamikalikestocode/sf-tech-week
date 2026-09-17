@@ -54,29 +54,37 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
   return (
     <main className="min-h-screen bg-[#E9E2D3]">
       <div className="border-b border-[#DDD3BD] bg-[#E9E2D3]">
-        <div className="mx-auto max-w-[1200px] px-[22px] pb-3 pt-10">
+        <div className="mx-auto max-w-[1200px] px-[22px] pb-3 pt-6 sm:pt-10">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
             <div className="min-w-0">
-              {/* Kicker */}
-              <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#766E5C]">
-                <span className="flex items-center gap-1.5">
-                  <span className="relative inline-flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#00FF9C] opacity-60" />
-                    <span className="relative inline-flex size-2 rounded-full bg-[#00FF9C]" />
+              {/* Kicker — on phones the stats ride along on this same line */}
+              <div className="mb-3 flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#766E5C] sm:mb-4 sm:justify-start">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
+                    <span className="relative inline-flex size-2">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#00FF9C] opacity-60" />
+                      <span className="relative inline-flex size-2 rounded-full bg-[#00FF9C]" />
+                    </span>
+                    <span className="text-[#0A8F5A]">Live</span>
                   </span>
-                  <span className="text-[#0A8F5A]">Live</span>
-                </span>
-                <span>{city.dateRange}</span>
+                  <span>{city.dateRange}</span>
+                </div>
+                {events.length > 0 && (
+                  <span className="shrink-0 tabular-nums normal-case tracking-normal sm:hidden">
+                    <span className="font-extrabold text-[#1C1A14]">{events.length.toLocaleString()}</span> events ·{" "}
+                    <span className="font-extrabold text-[#0A8F5A]">{totalGuests.toLocaleString()}</span> going
+                  </span>
+                )}
               </div>
 
               <h1 className="font-extrabold leading-[0.98] tracking-[-0.035em] text-[#1C1A14]" style={{ fontSize: "clamp(36px,5.4vw,60px)" }}>
                 {city.title}
               </h1>
 
-              <p className="mt-3 max-w-[600px] text-base leading-[1.55] text-[#766E5C]">
+              <p className="mt-2 max-w-[600px] text-[15px] leading-[1.45] text-[#766E5C] sm:mt-3 sm:text-base sm:leading-[1.55]">
                 The a16z tech week website is kinda bad, so here&apos;s a better one.
               </p>
-              <p className="mt-1.5 text-sm font-medium text-[#766E5C]">
+              <p className="mt-1 text-sm font-medium text-[#766E5C] sm:mt-1.5">
                 x:{" "}
                 <a
                   href="https://x.com/anamika__x"
@@ -89,9 +97,9 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
               </p>
             </div>
 
-            {/* Stat ticker — parallel to the title on desktop, below it on phones */}
+            {/* Stat ticker — beside the title on wider screens; phones get the inline line above */}
             {events.length > 0 ? (
-              <div className="grid w-full shrink-0 grid-cols-2 items-stretch divide-x divide-[#CDC1A6] rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] sm:mt-9 sm:flex sm:w-auto">
+              <div className="hidden shrink-0 items-stretch divide-x divide-[#CDC1A6] rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] sm:mt-9 sm:flex">
                 <StatCell label="Events" value={events.length.toLocaleString()} />
                 <StatCell label="Going" value={totalGuests.toLocaleString()} accent title="Confirmed guests across every event with Partiful data" />
                 {avgAcceptance !== null && (
