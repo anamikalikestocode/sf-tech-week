@@ -108,7 +108,7 @@ export const CITIES: Record<CitySlug, CityConfig> = {
       "Thursday 6pm has 115 events — which one?",
     ],
     officialUrl: "https://www.tech-week.com/calendar/sf",
-    siteUrl: "https://sf-tech-week.vercel.app",
+    siteUrl: "https://sf-techweek.vercel.app",
   },
 };
 

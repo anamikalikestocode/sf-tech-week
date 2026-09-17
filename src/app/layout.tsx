@@ -9,7 +9,7 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sf-tech-week.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sf-techweek.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
