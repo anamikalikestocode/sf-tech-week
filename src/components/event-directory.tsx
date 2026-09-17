@@ -9,8 +9,6 @@ import {
 import type { TechWeekEvent } from "@/lib/events";
 import type { CityConfig } from "@/lib/cities";
 import {
-  collisionMap,
-  collisions,
   demandRatio,
   spotsLeft,
   vibes,
@@ -184,7 +182,6 @@ export function EventDirectory({
 
   // Derived per-event signals, computed once per data load.
   const vibeMap = useMemo(() => new Map(events.map((e) => [e.id, vibes(e)])), [events]);
-  const cm = useMemo(() => collisionMap(events), [events]);
 
   const [visibleCount, setVisibleCount] = useState(60);
 
@@ -292,7 +289,7 @@ export function EventDirectory({
           <>
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
               {visible.map((event) => (
-                <EventCard key={event.id} event={event} others={collisions(event, cm)} />
+                <EventCard key={event.id} event={event} />
               ))}
             </div>
             {hasMore && (
