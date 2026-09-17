@@ -67,7 +67,8 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
                     </span>
                     <span className="text-[#0A8F5A]">Live</span>
                   </span>
-                  <span>{city.dateRange}</span>
+                  <span className="hidden sm:inline">{city.dateRange}</span>
+                  <span className="sm:hidden">{city.days[0].label.replace(/^\w+, /, "")}–{city.days[city.days.length - 1].label.replace(/^\w+, \w+ /, "")}</span>
                 </div>
                 {events.length > 0 && (
                   <span className="shrink-0 tabular-nums normal-case tracking-normal sm:hidden">
