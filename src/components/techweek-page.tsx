@@ -4,7 +4,6 @@ import { CITIES, type CitySlug } from "@/lib/cities";
 import type { TechWeekEvent } from "@/lib/events";
 import { EventDirectory } from "@/components/event-directory";
 import { EventCard } from "@/components/event-card";
-import { computeMoney, fmtRange } from "@/lib/insights";
 
 function StatCell({
   label,
@@ -34,23 +33,9 @@ function confirmedCount(e: TechWeekEvent): number {
   return p.guestAction === "APPLY" ? p.approvedCount : p.guestCount;
 }
 
-function formatScrapedAt(iso: string | null, timeZone: string): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString("en-US", {
-    timeZone,
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
-}
-
 export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
   const city = CITIES[slug];
-  const { events, scrapedAt } = await getEvents(slug);
+  const { events } = await getEvents(slug);
 
   const totalGuests = events.reduce((sum, e) => sum + confirmedCount(e), 0);
   const applyEvents = events.filter((e) => e.partiful?.guestAction === "APPLY");
@@ -65,8 +50,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
       ? Math.round((rated.reduce((s, e) => s + (e.partiful!.acceptanceRate as number), 0) / rated.length) * 100)
       : null;
 
-  const updated = formatScrapedAt(scrapedAt, city.timeZone);
-  const money = computeMoney(events);
 
   return (
     <main className="min-h-screen bg-[#E9E2D3]">
@@ -82,7 +65,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
               <span className="text-[#0A8F5A]">Live</span>
             </span>
             <span>{city.dateRange}</span>
-            <span className="text-[#A79E89]">· Unofficial</span>
           </div>
 
           <h1 className="font-extrabold leading-[0.98] tracking-[-0.035em] text-[#1C1A14]" style={{ fontSize: "clamp(36px,5.4vw,60px)" }}>
@@ -102,9 +84,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
             >
               @anamika__x
             </a>
-            {updated && (
-              <span className="ml-3 text-[#A79E89]">Partiful data as of {updated}</span>
-            )}
           </p>
 
           {/* Stat ticker */}
@@ -114,14 +93,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
               <StatCell label="Going" value={totalGuests.toLocaleString()} accent title="Confirmed guests across every event with Partiful data" />
               {avgAcceptance !== null && (
                 <StatCell label="Avg accepted" value={`${avgAcceptance}%`} accent title={`Across ${rated.length} application events with visible applicant pools`} />
-              )}
-              {money.estimated > 0 && (
-                <StatCell
-                  label="Ticket $ to hosts"
-                  value={fmtRange(money.hostLow, money.hostHigh)}
-                  accent
-                  title={`Estimated from ${money.tickets.toLocaleString()} tickets across ${money.estimated} paid events; Partiful keeps ${fmtRange(money.partifulLow, money.partifulHigh)}`}
-                />
               )}
             </div>
           ) : (

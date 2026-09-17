@@ -105,7 +105,7 @@ export const CITIES: Record<CitySlug, CityConfig> = {
     suggestedPrompts: [
       "Which events are the most oversubscribed?",
       "Where can I bring a +1 and get free food?",
-      "Thursday 6pm has 115 events — which one?",
+      "Are there any open bars?",
     ],
     officialUrl: "https://www.tech-week.com/calendar/sf",
     siteUrl: "https://sf-techweek.vercel.app",
