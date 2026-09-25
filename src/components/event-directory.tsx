@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   useQueryState,
   parseAsArrayOf,
@@ -8,7 +8,6 @@ import {
 } from "nuqs";
 import type { TechWeekEvent } from "@/lib/events";
 import type { CityConfig } from "@/lib/cities";
-import { SHOW_MY_PARTIFUL, useSocial } from "./social";
 import {
   demandRatio,
   spotsLeft,
@@ -157,49 +156,8 @@ export function EventDirectory({
     parseAsArrayOf(parseAsString).withDefault([])
   );
 
-  const [selectedPersonal, setSelectedPersonal] = useQueryState(
-    "mine",
-    parseAsArrayOf(parseAsString).withDefault([])
-  );
-
-  // Right after connecting: show just your Partiful events.
-  useEffect(() => {
-    const show = () => {
-      void setSelectedPersonal(["partiful"]);
-      document.getElementById("events")?.scrollIntoView({ behavior: "smooth" });
-    };
-    window.addEventListener(SHOW_MY_PARTIFUL, show);
-    return () => window.removeEventListener(SHOW_MY_PARTIFUL, show);
-  }, [setSelectedPersonal]);
-
   // Derived per-event signals, computed once per data load.
   const vibeMap = useMemo(() => new Map(events.map((e) => [e.id, vibes(e)])), [events]);
-
-  // Your Partiful events, and events where people you know (friends, hosts,
-  // other connected Partiful users) are going.
-  const social = useSocial();
-  const { inPartiful, partiful, crowdGoing, friendsGoing, hostFriends } = social;
-  const mutualIds = useMemo(
-    () =>
-      new Set(
-        events
-          .filter((e) => crowdGoing(e.id) > 0 || friendsGoing(e.id).length > 0 || hostFriends(e).length > 0)
-          .map((e) => e.id)
-      ),
-    [events, crowdGoing, friendsGoing, hostFriends]
-  );
-  const mutualCount = useCallback(
-    (e: TechWeekEvent) => crowdGoing(e.id) + friendsGoing(e.id).length,
-    [crowdGoing, friendsGoing]
-  );
-  const personalOptions = partiful.connected
-    ? [
-        { value: "partiful", label: "✓ My Partiful", count: events.filter((e) => inPartiful.has(e.id)).length },
-        { value: "mutuals", label: "Mutuals going", count: mutualIds.size },
-      ]
-    : [];
-  // Personal filters only apply once connected (a shared ?mine= link stays harmless).
-  const personal = useMemo(() => (partiful.connected ? selectedPersonal : []), [partiful.connected, selectedPersonal]);
 
   const [visibleCount, setVisibleCount] = useState(60);
 
@@ -207,9 +165,6 @@ export function EventDirectory({
     const q = search.toLowerCase().trim();
 
     return events.filter((e) => {
-      if (personal.includes("partiful") && !inPartiful.has(e.id)) return false;
-      if (personal.includes("mutuals") && !mutualIds.has(e.id)) return false;
-
       if (selectedDays.length > 0 && !selectedDays.includes(e.date))
         return false;
 
@@ -258,17 +213,9 @@ export function EventDirectory({
     selectedNeighborhoods,
     selectedVibes,
     vibeMap,
-    personal,
-    inPartiful,
-    mutualIds,
   ]);
 
-  // With Mutuals on, the events with the most people you know come first.
-  const sorted = useMemo(() => {
-    const base = sortEvents(filtered, sort);
-    if (!personal.includes("mutuals")) return base;
-    return [...base].sort((a, b) => mutualCount(b) - mutualCount(a));
-  }, [filtered, sort, personal, mutualCount]);
+  const sorted = useMemo(() => sortEvents(filtered, sort), [filtered, sort]);
 
   const visible = sorted.slice(0, visibleCount);
   const hasMore = visibleCount < sorted.length;
@@ -278,7 +225,7 @@ export function EventDirectory({
   }, []);
 
   return (
-    <div id="events" className="min-h-screen scroll-mt-2 bg-[#E9E2D3]">
+    <div className="min-h-screen bg-[#E9E2D3]">
       <FilterBar
         search={search}
         onSearchChange={setSearch}
@@ -299,9 +246,6 @@ export function EventDirectory({
         selectedVibes={selectedVibes}
         onVibesChange={setSelectedVibes}
         vibeOptions={Object.values(VIBE_LABELS)}
-        personalOptions={personalOptions}
-        selectedPersonal={personal}
-        onPersonalChange={setSelectedPersonal}
       />
 
       <div className="mx-auto max-w-[1200px] px-[22px] py-6">

@@ -4,7 +4,6 @@ import { spotsLeft, venueName } from "@/lib/insights";
 import { Lock } from "lucide-react";
 import { trackRsvpClick } from "@/lib/session";
 import { CountAndBar, formatDate, timeRange } from "./event-bits";
-import { FriendsGoingRow, firstName, useSocial } from "./social";
 
 export { CountAndBar, formatDate, timeRange };
 
@@ -63,12 +62,9 @@ function TopicChips({ topics }: { topics: string[] }) {
 
 export function EventCard({ event }: { event: TechWeekEvent }) {
   const p = event.partiful;
-  const social = useSocial();
   const venue = venueName(event);
   const place = venue ? `${venue} · ${p?.neighborhood || event.location || ""}` : p?.neighborhood || event.location || "TBA";
   const host = event.company || event.hosts?.[0] || "";
-  const friends = social.friendsGoing(event.id);
-  const hostFriends = social.hostFriends(event);
 
   return (
     <a
@@ -77,10 +73,7 @@ export function EventCard({ event }: { event: TechWeekEvent }) {
       rel="noopener noreferrer"
       onClick={
         event.url
-          ? () => {
-              trackRsvpClick({ eventUrl: event.url, eventName: event.name, source: "card" });
-              social.noteRsvpClick(event);
-            }
+          ? () => trackRsvpClick({ eventUrl: event.url, eventName: event.name, source: "card" })
           : undefined
       }
       className={
@@ -100,23 +93,6 @@ export function EventCard({ event }: { event: TechWeekEvent }) {
       <div className="truncate text-[12px] text-[#766E5C]">
         {formatDate(event.date)} · {timeRange(event)} · {place}
       </div>
-
-      {social.inPartiful.has(event.id) && <p className="text-[12px] font-semibold text-[#0A8F5A]">✓ In your Partiful</p>}
-
-      {(friends.length > 0 || hostFriends.length > 0) && (
-        <div className="flex flex-col gap-1">
-          {hostFriends.length > 0 && (
-            <p className="text-[12px] font-semibold text-[#0A8F5A]">Hosted by {hostFriends.map((f) => firstName(f.name)).join(" & ")}</p>
-          )}
-          <FriendsGoingRow friends={friends} compact />
-        </div>
-      )}
-
-      {social.crowdGoing(event.id) > 0 && (
-        <p className="text-[12px] text-[#766E5C]">
-          {social.crowdGoing(event.id)} {friends.length > 0 ? "more" : social.crowdGoing(event.id) === 1 ? "person" : "people"} from Partiful going
-        </p>
-      )}
 
       <TopicChips topics={event.topics} />
 

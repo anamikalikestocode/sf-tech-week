@@ -4,7 +4,6 @@ import { CITIES, type CitySlug } from "@/lib/cities";
 import type { TechWeekEvent } from "@/lib/events";
 import { EventDirectory } from "@/components/event-directory";
 import { EventCard } from "@/components/event-card";
-import { AccountChip, SocialProvider } from "@/components/social";
 
 function StatCell({
   label,
@@ -73,8 +72,7 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
       : null;
 
   return (
-    <SocialProvider>
-      <main className="min-h-screen bg-[#E9E2D3]">
+    <main className="min-h-screen bg-[#E9E2D3]">
         <div className="border-b border-[#DDD3BD] bg-[#E9E2D3]">
           <div className="mx-auto max-w-[1200px] px-[22px] pb-3 pt-6 sm:pt-10">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
@@ -117,7 +115,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
                     @anamika__x
                   </a>
                 </p>
-                <AccountChip />
               </div>
 
               {/* Stat ticker — beside the title on wider screens; phones get the inline line above */}
@@ -165,7 +162,6 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
           <EventDirectory events={events} city={city} />
         </Suspense>
       </main>
-    </SocialProvider>
   );
 }
 
