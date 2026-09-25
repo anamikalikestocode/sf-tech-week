@@ -198,6 +198,8 @@ export function EventDirectory({
         { value: "mutuals", label: "Mutuals going", count: mutualIds.size },
       ]
     : [];
+  // Personal filters only apply once connected (a shared ?mine= link stays harmless).
+  const personal = useMemo(() => (partiful.connected ? selectedPersonal : []), [partiful.connected, selectedPersonal]);
 
   const [visibleCount, setVisibleCount] = useState(60);
 
@@ -205,8 +207,8 @@ export function EventDirectory({
     const q = search.toLowerCase().trim();
 
     return events.filter((e) => {
-      if (selectedPersonal.includes("partiful") && !inPartiful.has(e.id)) return false;
-      if (selectedPersonal.includes("mutuals") && !mutualIds.has(e.id)) return false;
+      if (personal.includes("partiful") && !inPartiful.has(e.id)) return false;
+      if (personal.includes("mutuals") && !mutualIds.has(e.id)) return false;
 
       if (selectedDays.length > 0 && !selectedDays.includes(e.date))
         return false;
@@ -256,7 +258,7 @@ export function EventDirectory({
     selectedNeighborhoods,
     selectedVibes,
     vibeMap,
-    selectedPersonal,
+    personal,
     inPartiful,
     mutualIds,
   ]);
@@ -264,9 +266,9 @@ export function EventDirectory({
   // With Mutuals on, the events with the most people you know come first.
   const sorted = useMemo(() => {
     const base = sortEvents(filtered, sort);
-    if (!selectedPersonal.includes("mutuals")) return base;
+    if (!personal.includes("mutuals")) return base;
     return [...base].sort((a, b) => mutualCount(b) - mutualCount(a));
-  }, [filtered, sort, selectedPersonal, mutualCount]);
+  }, [filtered, sort, personal, mutualCount]);
 
   const visible = sorted.slice(0, visibleCount);
   const hasMore = visibleCount < sorted.length;
@@ -298,7 +300,7 @@ export function EventDirectory({
         onVibesChange={setSelectedVibes}
         vibeOptions={Object.values(VIBE_LABELS)}
         personalOptions={personalOptions}
-        selectedPersonal={selectedPersonal}
+        selectedPersonal={personal}
         onPersonalChange={setSelectedPersonal}
       />
 
