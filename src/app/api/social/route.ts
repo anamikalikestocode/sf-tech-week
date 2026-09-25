@@ -8,17 +8,40 @@ import { getConnection, refreshIfStale } from "@/lib/partiful-calendar";
 //   which events each friend is going to, and the viewer's own RSVPs.
 // Friends who set visibility 'nobody' are listed as friends but contribute no
 // attendance, so a count can never reveal a hidden person.
+// How many connected people are going to each event, excluding anyone who set
+// visibility 'nobody' plus the ids in `exclude` (the viewer and their friends,
+// who are shown by name instead). Paged: PostgREST caps each response.
+async function crowdCounts(client: ReturnType<typeof db>, exclude: Set<string>): Promise<Record<string, number>> {
+  const { data: hidden } = await client.from("sf_users").select("id").eq("visibility", "nobody");
+  const skip = new Set([...(hidden ?? []).map((h) => h.id as string), ...exclude]);
+  const crowd: Record<string, number> = {};
+  const PAGE = 1000;
+  for (let from = 0; from < 200_000; from += PAGE) {
+    const { data } = await client.from("sf_attendance").select("user_id, event_id").eq("status", "going").order("user_id").range(from, from + PAGE - 1);
+    for (const r of data ?? []) {
+      if (skip.has(r.user_id)) continue;
+      crowd[r.event_id] = (crowd[r.event_id] ?? 0) + 1;
+    }
+    if (!data || data.length < PAGE) break;
+  }
+  return crowd;
+}
+
 export async function GET() {
   if (!socialEnabled()) return NextResponse.json({ enabled: false });
+  const client = db();
   const me = await currentUser();
-  if (!me) return NextResponse.json({ enabled: true, me: null });
+  if (!me) {
+    let crowd: Record<string, number> = {};
+    try { crowd = await crowdCounts(client, new Set()); } catch { /* best-effort */ }
+    return NextResponse.json({ enabled: true, me: null, crowd });
+  }
 
   let connection;
   try {
     await refreshIfStale(me.id);
     connection = await getConnection(me.id);
   } catch { /* Preserve social functionality if calendar storage is unavailable. */ }
-  const client = db();
   const [{ data: asA }, { data: asB }, { data: mine }] = await Promise.all([
     client.from("sf_friendships").select("user_b").eq("user_a", me.id),
     client.from("sf_friendships").select("user_a").eq("user_b", me.id),
@@ -42,8 +65,12 @@ export async function GET() {
     }
   }
 
+  let crowd: Record<string, number> = {};
+  try { crowd = await crowdCounts(client, new Set([me.id, ...friendIds])); } catch { /* best-effort */ }
+
   return NextResponse.json({
     enabled: true,
+    crowd,
     me,
     friends: friends.map((f) => ({ id: f.id, name: f.name, xHandle: f.x_handle, pfProfileId: f.visibility === "friends" ? f.pf_profile_id : null })),
     going,

@@ -32,9 +32,12 @@ interface SocialState {
   friendsById: Map<string, Friend>;
   going: Record<string, string[]>;
   mine: Set<string>;
+  /** Other connected people going per event (not the viewer, not their friends) */
+  crowd: Record<string, number>;
 }
 
 interface SocialApi extends SocialState {
+  crowdGoing: (eventId: string) => number;
   friendsGoing: (eventId: string) => Friend[];
   hostFriends: (event: TechWeekEvent) => Friend[];
   setGoing: (event: TechWeekEvent, going: boolean, source?: "manual" | "prompt") => Promise<void>;
@@ -42,10 +45,11 @@ interface SocialApi extends SocialState {
   noteRsvpClick: (event: TechWeekEvent) => void;
 }
 
-const EMPTY: SocialState = { inPartiful: new Set(), partiful: NO_PARTIFUL, enabled: false, me: null, friends: [], friendsById: new Map(), going: {}, mine: new Set() };
+const EMPTY: SocialState = { inPartiful: new Set(), partiful: NO_PARTIFUL, enabled: false, me: null, friends: [], friendsById: new Map(), going: {}, mine: new Set(), crowd: {} };
 
 const SocialContext = createContext<SocialApi>({
   ...EMPTY,
+  crowdGoing: () => 0,
   friendsGoing: () => [],
   hostFriends: () => [],
   setGoing: async () => {},
@@ -119,6 +123,7 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
   const afterAccount = useRef<(() => void) | null>(null);
   const [invite, setInvite] = useState<{ code: string; inviter: string } | null>(null);
   const [prompt, setPrompt] = useState<TechWeekEvent | null>(null);
+  const [notice, setNotice] = useState("");
   const pendingRsvp = useRef<{ event: TechWeekEvent; at: number } | null>(null);
 
   const load = useCallback(async () => {
@@ -136,6 +141,7 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
         mine: new Set<string>(j.mine ?? []),
         inPartiful: new Set<string>(j.inPartiful ?? []),
         partiful: j.partiful ?? NO_PARTIFUL,
+        crowd: j.crowd ?? {},
       });
     } catch {
       /* social is best-effort; the directory works without it */
@@ -216,6 +222,7 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
     };
     return {
       ...state,
+      crowdGoing: (eventId: string) => state.crowd[eventId] ?? 0,
       friendsGoing,
       hostFriends,
       setGoing,
@@ -241,7 +248,16 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
             afterAccount.current = null;
             then?.();
           }}
+          onConnected={(message) => {
+            setAccountOpen(false);
+            setNotice(message);
+          }}
         />
+      )}
+      {notice && (
+        <Toast onClose={() => setNotice("")}>
+          <span className="min-w-0 font-semibold text-[#0A8F5A]">{notice}</span>
+        </Toast>
       )}
       {invite && (
         <InviteModal
@@ -289,21 +305,14 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
 // ---------- header chip ----------
 
 export function AccountChip() {
-  const { enabled, me, friends, openAccount } = useSocial();
+  const { enabled, me, partiful, openAccount } = useSocial();
   if (!enabled) return null;
   return (
     <button
       onClick={() => openAccount()}
       className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0A8F5A] underline-offset-2 hover:underline"
     >
-      {me ? (
-        <>
-          <Avatar name={me.name} xHandle={me.x_handle} size={18} />
-          {friends.length > 0 ? `${friends.length} friend${friends.length === 1 ? "" : "s"} · invite more` : "Invite friends to see who's going"}
-        </>
-      ) : (
-        "Connect Partiful →"
-      )}
+      {me && partiful.connected ? "Partiful ✓ Connected" : "Connect Partiful →"}
     </button>
   );
 }
@@ -339,8 +348,16 @@ const inputCls =
   "w-full rounded-[10px] border border-[#DDD3BD] bg-[#E9E2D3]/50 px-3 py-2.5 text-[16px] text-[#1C1A14] outline-none placeholder:text-[#A79E89] focus:border-[#0A8F5A]";
 const primaryBtn = "w-full rounded-full bg-[#1C1A14] px-4 py-2.5 text-[14px] font-bold text-[#F7F2E7] disabled:opacity-40";
 
-function AccountModal({ onClose, onSignedIn }: { onClose: () => void; onSignedIn: () => Promise<void> }) {
-  const { me, friends } = useSocial();
+function AccountModal({
+  onClose,
+  onSignedIn,
+  onConnected,
+}: {
+  onClose: () => void;
+  onSignedIn: () => Promise<void>;
+  onConnected: (message: string) => void;
+}) {
+  const { me, friends, partiful } = useSocial();
   const [name, setName] = useState(me?.name ?? "");
   const [x, setX] = useState(me?.x_handle ?? "");
   const [pf, setPf] = useState(me?.pf_profile_id ? `partiful.com/u/${me.pf_profile_id}` : "");
@@ -378,27 +395,16 @@ function AccountModal({ onClose, onSignedIn }: { onClose: () => void; onSignedIn
     setTimeout(() => setCopied(false), 1800);
   }
 
-  if (!me) {
+  // Not connected yet: the whole screen is one line and a paste box.
+  if (!me || !partiful.connected) {
     return (
       <Overlay onClose={onClose}>
-        <h2 className="text-[20px] font-extrabold tracking-[-0.02em] text-[#1C1A14]">Connect your Partiful</h2>
-        <p className="mt-1 text-[13px] leading-[1.45] text-[#766E5C]">
-          See your Tech Week events and where people you know are going. Add your name, then paste your Partiful Calendar Sync link on the next step. Only people you connect with see your plans.
-        </p>
-        <form
-          className="mt-4 flex flex-col gap-2.5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (name.trim()) void save();
+        <ConnectPartiful
+          onDone={async (matched) => {
+            await onSignedIn();
+            onConnected(`Found ${matched} of your Tech Week events`);
           }}
-        >
-          <input autoFocus className={inputCls} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />
-          <input className={inputCls} placeholder="X handle for your photo (optional)" value={x} onChange={(e) => setX(e.target.value)} />
-          {err && <p className="text-[12px] text-[#D8442B]">{err}</p>}
-          <button type="submit" className={primaryBtn} disabled={busy || !name.trim()}>
-            {busy ? "…" : "Continue"}
-          </button>
-        </form>
+        />
       </Overlay>
     );
   }
@@ -476,48 +482,119 @@ function AccountModal({ onClose, onSignedIn }: { onClose: () => void; onSignedIn
   );
 }
 
-function PartifulConnection({ onChanged }: { onChanged: () => Promise<void> }) {
-  const { partiful } = useSocial();
+// Looks like a Partiful Calendar Sync link: connect the moment it's pasted.
+const FEED_RE = /calendars\.partiful\.com\/getCalendar\?\S*\bid=/i;
+
+function ConnectPartiful({ onDone }: { onDone: (matched: number) => Promise<void> }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [reward, setReward] = useState("");
-  async function submit(disconnect = false) {
-    setBusy(true); setError(""); setReward("");
+  async function connect(value: string) {
+    if (busy || !value.trim()) return;
+    setBusy(true);
+    setError("");
     try {
       const response = await fetch("/api/partiful", {
-        method: disconnect ? "DELETE" : "POST",
+        method: "POST",
         headers: { "content-type": "application/json" },
-        ...(disconnect ? {} : { body: JSON.stringify({ url }) }),
+        body: JSON.stringify({ url: value.trim() }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Something went wrong. Try again.");
       setUrl("");
-      if (!disconnect) setReward(`Found ${data.matched} of your Tech Week events`);
+      await onDone(data.matched ?? 0);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  function take(value: string) {
+    setUrl(value);
+    setError("");
+    if (FEED_RE.test(value)) void connect(value);
+  }
+  return (
+    <form
+      className="flex flex-col gap-2.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void connect(url);
+      }}
+    >
+      <p className="text-[15px] font-semibold leading-[1.4] text-[#1C1A14]">In Partiful, open Calendar Sync → Copy Link, then paste it here.</p>
+      <input
+        autoFocus
+        aria-label="Partiful Calendar Sync link"
+        className={inputCls}
+        value={url}
+        onChange={(e) => take(e.target.value)}
+        placeholder="webcal://calendars.partiful.com/…"
+        autoComplete="off"
+        spellCheck={false}
+        disabled={busy}
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          className="shrink-0 rounded-full border border-[#1C1A14] px-4 py-2.5 text-[14px] font-bold text-[#1C1A14] disabled:opacity-40"
+          onClick={async () => {
+            try {
+              if (!navigator.clipboard?.readText) throw new Error("unavailable");
+              take(await navigator.clipboard.readText());
+            } catch {
+              setError("Clipboard access isn't available. Paste the link into the box.");
+            }
+          }}
+        >
+          Paste from clipboard
+        </button>
+        <button className={primaryBtn} disabled={busy || !url.trim()}>
+          {busy ? "Connecting…" : "Connect"}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="text-[12px] text-[#D8442B]">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+function PartifulConnection({ onChanged }: { onChanged: () => Promise<void> }) {
+  const { partiful } = useSocial();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function disconnect() {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/partiful", { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Something went wrong. Try again.");
       await onChanged();
-    } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Try again."); }
-    finally { setBusy(false); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <section className="mt-4 rounded-[12px] border border-[#DDD3BD] bg-[#E9E2D3]/50 p-3">
-      <h3 className="text-[14px] font-bold text-[#0A8F5A]">{partiful.connected ? "Partiful ✓ Connected" : "Connect your Partiful"}</h3>
-      {partiful.connected ? <>
-        <p className="mt-1 text-[12px] text-[#766E5C]">{partiful.lastSyncedAt ? `Last synced ${new Date(partiful.lastSyncedAt).toLocaleString()}` : "Awaiting a successful sync"}</p>
-        <button disabled={busy} onClick={() => void submit(true)} className="mt-2 text-[12px] text-[#766E5C] underline disabled:opacity-40">{busy ? "Disconnecting…" : "Disconnect Partiful"}</button>
-      </> : <form className="mt-2 flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
-        <p className="text-[13px] text-[#766E5C]">See your events and discover where people you know are going.</p>
-        <p className="text-[12px] text-[#766E5C]">In Partiful, open Calendar Sync → Copy Link, then paste it here.</p>
-        <input aria-label="Partiful Calendar Sync URL" className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="webcal://calendars.partiful.com/…" autoComplete="off" spellCheck={false} disabled={busy} />
-        <button type="button" disabled={busy} className="text-left text-[12px] text-[#0A8F5A] underline" onClick={async () => {
-          try {
-            if (!navigator.clipboard?.readText) throw new Error("unavailable");
-            setUrl(await navigator.clipboard.readText()); setError("");
-          } catch { setError("Clipboard access isn't available. Paste the link into the field."); }
-        }}>Paste from clipboard</button>
-        <button className={primaryBtn} disabled={busy || !url.trim()}>{busy ? "Connecting…" : "Connect Partiful"}</button>
-      </form>}
-      {reward && <p role="status" className="mt-2 text-[13px] font-semibold text-[#0A8F5A]">{reward}</p>}
-      {error && <p role="alert" className="mt-2 text-[12px] text-[#D8442B]">{error}</p>}
+      <h3 className="text-[14px] font-bold text-[#0A8F5A]">Partiful ✓ Connected</h3>
+      <p className="mt-1 text-[12px] text-[#766E5C]">
+        {partiful.lastSyncedAt ? `Last synced ${new Date(partiful.lastSyncedAt).toLocaleString()}` : "Awaiting a successful sync"}
+      </p>
+      <button disabled={busy} onClick={() => void disconnect()} className="mt-2 text-[12px] text-[#766E5C] underline disabled:opacity-40">
+        {busy ? "Disconnecting…" : "Disconnect"}
+      </button>
+      {error && (
+        <p role="alert" className="mt-2 text-[12px] text-[#D8442B]">
+          {error}
+        </p>
+      )}
     </section>
   );
 }

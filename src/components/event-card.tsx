@@ -112,6 +112,12 @@ export function EventCard({ event }: { event: TechWeekEvent }) {
         </div>
       )}
 
+      {social.crowdGoing(event.id) > 0 && (
+        <p className="text-[12px] text-[#766E5C]">
+          {social.crowdGoing(event.id)} {friends.length > 0 ? "more" : social.crowdGoing(event.id) === 1 ? "person" : "people"} from Partiful going
+        </p>
+      )}
+
       <TopicChips topics={event.topics} />
 
       <CountAndBar event={event} />

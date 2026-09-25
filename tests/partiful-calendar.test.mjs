@@ -101,9 +101,18 @@ test('event index uses actual snapshot URLs and rejects unrelated hosts', async 
 
 test('API authentication, validation, safe success/error/status/disconnect responses', async () => {
   let signedIn = true, fail = false, disconnected = false;
-  const saved = [];
+  const saved = [], created = [], sessions = [];
   const api = load('src/app/api/partiful/route.ts', {
-    '@/lib/auth': { currentUser: async () => signedIn ? { id: 'u' } : null, db: () => ({ from: () => ({ upsert: async row => { saved.push(row); return {}; } }) }) },
+    '@/lib/auth': {
+      socialEnabled: () => true,
+      newInviteCode: () => 'code',
+      startSession: async id => { sessions.push(id); },
+      currentUser: async () => signedIn ? { id: 'u' } : null,
+      db: () => ({ from: () => ({
+        upsert: async row => { saved.push(row); return {}; },
+        insert: row => { created.push(row); return { select: () => ({ single: async () => ({ data: { id: 'new-user' } }) }) }; },
+      }) }),
+    },
     '@/lib/partiful-calendar': {
       ...library(), encryptFeed: () => 'encrypted-secret', fingerprint: () => 'fingerprint',
       syncConnection: async () => fail ? { error: 'Sync failed' } : { matched: 1, total: 2 },
@@ -120,8 +129,11 @@ test('API authentication, validation, safe success/error/status/disconnect respo
   assert.deepEqual(await status.json(), { connected: true, lastSyncedAt: null, eventCount: 1 });
   fail = true; assert.equal((await post({ url })).status, 502);
   assert.deepEqual(await (await api.DELETE()).json(), { ok: true }); assert.ok(disconnected);
-  signedIn = false;
-  assert.equal((await post({ url })).status, 401);
+  signedIn = false; fail = false;
+  // Signed out: junk never creates an account; a valid link silently does.
+  assert.equal((await post({ url: 'bad' })).status, 400); assert.equal(created.length, 0);
+  assert.equal((await post({ url })).status, 200);
+  assert.equal(created.length, 1); assert.deepEqual(sessions, ['new-user']); assert.equal(saved.at(-1).user_id, 'new-user');
   assert.equal((await api.GET()).status, 401);
   assert.equal((await api.DELETE()).status, 401);
 });
