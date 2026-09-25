@@ -29,6 +29,10 @@ interface FilterBarProps {
   selectedVibes: string[];
   onVibesChange: (v: string[]) => void;
   vibeOptions: string[];
+  /** Personal toggles (My Partiful, Mutuals going); empty when not connected */
+  personalOptions: Array<{ value: string; label: string; count: number }>;
+  selectedPersonal: string[];
+  onPersonalChange: (v: string[]) => void;
 }
 
 const SORT_OPTIONS = [
@@ -180,9 +184,11 @@ export function FilterBar(props: FilterBarProps) {
     selectedTopics.length > 0 ||
     selectedTimes.length > 0 ||
     selectedNeighborhoods.length > 0 ||
-    props.selectedVibes.length > 0;
+    props.selectedVibes.length > 0 ||
+    props.selectedPersonal.length > 0;
 
   function clearAll() {
+    props.onPersonalChange([]);
     onSearchChange("");
     onDaysChange([]);
     onTopicsChange([]);
@@ -236,6 +242,23 @@ export function FilterBar(props: FilterBarProps) {
 
         {/* Filter pills row */}
         <div className="flex flex-wrap gap-2">
+          {props.personalOptions.map((opt) => {
+            const isActive = props.selectedPersonal.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                onClick={() => props.onPersonalChange(toggle(props.selectedPersonal, opt.value))}
+                className={`touch-manipulation flex shrink-0 items-center gap-1.5 rounded-full border px-[13px] py-[7px] text-[13px] font-semibold transition-all duration-[160ms] ${
+                  isActive
+                    ? "border-[#00FF9C] bg-[#00FF9C] text-[#0C0C0A]"
+                    : "border-[#0A8F5A]/50 bg-[#F7F2E7] text-[#0A8F5A] hover:border-[#0A8F5A]"
+                }`}
+              >
+                {opt.label}
+                <span className="tabular-nums opacity-70">{opt.count}</span>
+              </button>
+            );
+          })}
           <DropdownFilter label="Topic" options={TOPICS} selected={selectedTopics} onChange={onTopicsChange} colorMap={TOPIC_COLORS} />
           <DropdownFilter label="Time" options={TIMES} selected={selectedTimes} onChange={onTimesChange} />
           <DropdownFilter label="Neighborhood" options={props.neighborhoods} selected={selectedNeighborhoods} onChange={onNeighborhoodsChange} />

@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { TechWeekEvent } from "@/lib/events";
 
+export const SHOW_MY_PARTIFUL = "sftw:show-my-partiful";
+
 // ---------- types ----------
 
 export interface Me {
@@ -251,6 +253,8 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
           onConnected={(message) => {
             setAccountOpen(false);
             setNotice(message);
+            // The directory switches on its "My Partiful" filter.
+            window.dispatchEvent(new Event(SHOW_MY_PARTIFUL));
           }}
         />
       )}
@@ -402,7 +406,7 @@ function AccountModal({
         <ConnectPartiful
           onDone={async (matched) => {
             await onSignedIn();
-            onConnected(`Found ${matched} of your Tech Week events`);
+            onConnected(`Found ${matched} of your Tech Week events — showing them now`);
           }}
         />
       </Overlay>
