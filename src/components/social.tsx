@@ -302,7 +302,7 @@ export function AccountChip() {
           {friends.length > 0 ? `${friends.length} friend${friends.length === 1 ? "" : "s"} · invite more` : "Invite friends to see who's going"}
         </>
       ) : (
-        "See which friends are going →"
+        "Connect Partiful →"
       )}
     </button>
   );
@@ -381,9 +381,9 @@ function AccountModal({ onClose, onSignedIn }: { onClose: () => void; onSignedIn
   if (!me) {
     return (
       <Overlay onClose={onClose}>
-        <h2 className="text-[20px] font-extrabold tracking-[-0.02em] text-[#1C1A14]">See which friends are going</h2>
+        <h2 className="text-[20px] font-extrabold tracking-[-0.02em] text-[#1C1A14]">Connect your Partiful</h2>
         <p className="mt-1 text-[13px] leading-[1.45] text-[#766E5C]">
-          Make a profile, send your link to friends, and every card shows who you know is going. Only people you connect with see your plans.
+          See your Tech Week events and where people you know are going. Add your name, then paste your Partiful Calendar Sync link on the next step. Only people you connect with see your plans.
         </p>
         <form
           className="mt-4 flex flex-col gap-2.5"
