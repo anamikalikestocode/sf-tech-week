@@ -311,12 +311,13 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
 export function AccountChip() {
   const { enabled, me, partiful, openAccount } = useSocial();
   if (!enabled) return null;
+  if (me && partiful.connected) return <p className="mt-1.5 text-sm font-semibold text-[#0A8F5A]">Partiful ✓ Connected</p>;
   return (
     <button
       onClick={() => openAccount()}
       className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0A8F5A] underline-offset-2 hover:underline"
     >
-      {me && partiful.connected ? "Partiful ✓ Connected" : "Connect Partiful →"}
+      Connect Partiful →
     </button>
   );
 }
@@ -352,6 +353,7 @@ const inputCls =
   "w-full rounded-[10px] border border-[#DDD3BD] bg-[#E9E2D3]/50 px-3 py-2.5 text-[16px] text-[#1C1A14] outline-none placeholder:text-[#A79E89] focus:border-[#0A8F5A]";
 const primaryBtn = "w-full rounded-full bg-[#1C1A14] px-4 py-2.5 text-[14px] font-bold text-[#F7F2E7] disabled:opacity-40";
 
+// Only ever the connect box: once connected there is nothing to manage.
 function AccountModal({
   onClose,
   onSignedIn,
@@ -361,127 +363,14 @@ function AccountModal({
   onSignedIn: () => Promise<void>;
   onConnected: (message: string) => void;
 }) {
-  const { me, friends, partiful } = useSocial();
-  const [name, setName] = useState(me?.name ?? "");
-  const [x, setX] = useState(me?.x_handle ?? "");
-  const [pf, setPf] = useState(me?.pf_profile_id ? `partiful.com/u/${me.pf_profile_id}` : "");
-  const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [err, setErr] = useState("");
-
-  const link = me ? `${window.location.origin}/?f=${me.invite_code}` : "";
-
-  async function save(extra: Record<string, unknown> = {}) {
-    setBusy(true);
-    setErr("");
-    const r = await fetch("/api/me", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, xHandle: x || null, partifulProfile: pf || null, ...extra }),
-    });
-    setBusy(false);
-    if (!r.ok) return setErr("Something went wrong. Try again.");
-    await onSignedIn();
-  }
-
-  async function share() {
-    const text = "See which SF Tech Week events we're both going to";
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "SF Tech Week", text, url: link });
-        return;
-      } catch {
-        /* fall through to copy */
-      }
-    }
-    await navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  }
-
-  // Not connected yet: the whole screen is one line and a paste box.
-  if (!me || !partiful.connected) {
-    return (
-      <Overlay onClose={onClose}>
-        <ConnectPartiful
-          onDone={async (matched) => {
-            await onSignedIn();
-            onConnected(`Found ${matched} of your Tech Week events — showing them now`);
-          }}
-        />
-      </Overlay>
-    );
-  }
-
   return (
     <Overlay onClose={onClose}>
-      <div className="flex items-center gap-2.5">
-        <Avatar name={me.name} xHandle={me.x_handle} size={36} />
-        <div className="min-w-0">
-          <h2 className="truncate text-[18px] font-extrabold tracking-[-0.02em] text-[#1C1A14]">{me.name}</h2>
-          <p className="text-[12px] text-[#766E5C]">
-            {friends.length} friend{friends.length === 1 ? "" : "s"}
-          </p>
-        </div>
-      </div>
-
-      <PartifulConnection onChanged={onSignedIn} />
-
-      <div className="mt-4 rounded-[12px] border border-[#DDD3BD] bg-[#E9E2D3]/50 p-3">
-        <p className="text-[12px] font-semibold text-[#1C1A14]">Your invite link</p>
-        <p className="mt-0.5 text-[12px] text-[#766E5C]">Anyone who opens it and accepts becomes your friend here.</p>
-        <div className="mt-2 flex gap-2">
-          <code className="min-w-0 flex-1 truncate rounded-[8px] bg-[#F7F2E7] px-2 py-2 text-[12px] text-[#1C1A14]">{link}</code>
-          <button onClick={() => void share()} className="shrink-0 rounded-full bg-[#00FF9C] px-3.5 text-[13px] font-bold text-[#0C0C0A]">
-            {copied ? "Copied" : "Share"}
-          </button>
-        </div>
-      </div>
-
-      {friends.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {friends.map((f) => (
-            <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-[#DDD3BD] px-2 py-0.5 text-[12px] text-[#1C1A14]">
-              <Avatar name={f.name} xHandle={f.xHandle} size={16} />
-              {f.name}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <form
-        className="mt-4 flex flex-col gap-2.5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void save();
+      <ConnectPartiful
+        onDone={async (matched) => {
+          await onSignedIn();
+          onConnected(`Found ${matched} of your Tech Week events — showing them now`);
         }}
-      >
-        <input className={inputCls} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />
-        <input className={inputCls} placeholder="X handle (optional)" value={x} onChange={(e) => setX(e.target.value)} />
-        <input className={inputCls} placeholder="Your Partiful profile link (optional, for 'Hosted by')" value={pf} onChange={(e) => setPf(e.target.value)} />
-        <label className="flex items-center gap-2 text-[13px] text-[#1C1A14]">
-          <input
-            type="checkbox"
-            checked={me.visibility === "friends"}
-            onChange={(e) => void save({ visibility: e.target.checked ? "friends" : "nobody" })}
-            className="size-4 accent-[#0A8F5A]"
-          />
-          Show my plans to friends
-        </label>
-        {err && <p className="text-[12px] text-[#D8442B]">{err}</p>}
-        <button type="submit" className={primaryBtn} disabled={busy || !name.trim()}>
-          {busy ? "…" : "Save"}
-        </button>
-      </form>
-      <button
-        onClick={async () => {
-          await fetch("/api/me", { method: "DELETE" });
-          window.location.reload();
-        }}
-        className="mt-3 w-full text-center text-[12px] text-[#766E5C] underline underline-offset-2"
-      >
-        Sign out
-      </button>
+      />
     </Overlay>
   );
 }
@@ -564,42 +453,6 @@ function ConnectPartiful({ onDone }: { onDone: (matched: number) => Promise<void
         </p>
       )}
     </form>
-  );
-}
-
-function PartifulConnection({ onChanged }: { onChanged: () => Promise<void> }) {
-  const { partiful } = useSocial();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  async function disconnect() {
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/partiful", { method: "DELETE" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Something went wrong. Try again.");
-      await onChanged();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <section className="mt-4 rounded-[12px] border border-[#DDD3BD] bg-[#E9E2D3]/50 p-3">
-      <h3 className="text-[14px] font-bold text-[#0A8F5A]">Partiful ✓ Connected</h3>
-      <p className="mt-1 text-[12px] text-[#766E5C]">
-        {partiful.lastSyncedAt ? `Last synced ${new Date(partiful.lastSyncedAt).toLocaleString()}` : "Awaiting a successful sync"}
-      </p>
-      <button disabled={busy} onClick={() => void disconnect()} className="mt-2 text-[12px] text-[#766E5C] underline disabled:opacity-40">
-        {busy ? "Disconnecting…" : "Disconnect"}
-      </button>
-      {error && (
-        <p role="alert" className="mt-2 text-[12px] text-[#D8442B]">
-          {error}
-        </p>
-      )}
-    </section>
   );
 }
 
