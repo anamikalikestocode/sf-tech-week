@@ -2,6 +2,7 @@
 import type { TechWeekEvent } from "@/lib/events";
 import { spotsLeft, venueName } from "@/lib/insights";
 import { Lock } from "lucide-react";
+import { trackRsvpClick } from "@/lib/session";
 import { CountAndBar, formatDate, timeRange } from "./event-bits";
 import { FriendsGoingRow, firstName, useSocial } from "./social";
 
@@ -68,27 +69,28 @@ export function EventCard({ event }: { event: TechWeekEvent }) {
   const host = event.company || event.hosts?.[0] || "";
   const friends = social.friendsGoing(event.id);
   const hostFriends = social.hostFriends(event);
-  const imGoing = social.mine.has(event.id);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => social.openEvent(event)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          social.openEvent(event);
-        }
-      }}
-      className="group flex cursor-pointer flex-col gap-2 rounded-[12px] border border-[#DDD3BD] bg-[#F7F2E7] px-4 py-3 transition-all duration-[160ms] hover:-translate-y-0.5 hover:border-[#00FF9C] hover:shadow-[0_16px_34px_-18px_rgba(40,30,10,0.3)]"
+    <a
+      href={event.url || undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={
+        event.url
+          ? () => {
+              trackRsvpClick({ eventUrl: event.url, eventName: event.name, source: "card" });
+              social.noteRsvpClick(event);
+            }
+          : undefined
+      }
+      className={
+        "group flex flex-col gap-2 rounded-[12px] border border-[#DDD3BD] bg-[#F7F2E7] px-4 py-3 transition-all duration-[160ms] " +
+        (event.url ? "cursor-pointer hover:-translate-y-0.5 hover:border-[#00FF9C] hover:shadow-[0_16px_34px_-18px_rgba(40,30,10,0.3)]" : "cursor-default")
+      }
     >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[12px] text-[#766E5C]">{host || "—"}</span>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {imGoing && <span className="rounded-full bg-[#00FF9C]/25 px-2 py-0.5 text-[10.5px] font-bold uppercase text-[#0A8F5A]">Going</span>}
-          <StatusBadge event={event} />
-        </div>
+        <StatusBadge event={event} />
       </div>
 
       <h3 className="line-clamp-2 text-[15px] font-bold leading-[1.25] tracking-[-0.01em] text-[#1C1A14] transition-colors duration-[160ms] group-hover:text-[#0A8F5A]">
@@ -99,14 +101,18 @@ export function EventCard({ event }: { event: TechWeekEvent }) {
         {formatDate(event.date)} · {timeRange(event)} · {place}
       </div>
 
+      {(friends.length > 0 || hostFriends.length > 0) && (
+        <div className="flex flex-col gap-1">
+          {hostFriends.length > 0 && (
+            <p className="text-[12px] font-semibold text-[#0A8F5A]">Hosted by {hostFriends.map((f) => firstName(f.name)).join(" & ")}</p>
+          )}
+          <FriendsGoingRow friends={friends} compact />
+        </div>
+      )}
+
       <TopicChips topics={event.topics} />
 
-      {hostFriends.length > 0 && (
-        <p className="text-[12px] font-semibold text-[#0A8F5A]">Hosted by {hostFriends.map((f) => firstName(f.name)).join(" & ")}</p>
-      )}
-      <FriendsGoingRow friends={friends} compact />
-
       <CountAndBar event={event} />
-    </div>
+    </a>
   );
 }

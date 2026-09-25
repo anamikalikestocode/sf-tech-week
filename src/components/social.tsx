@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { TechWeekEvent } from "@/lib/events";
-import { EventSheet } from "./event-sheet";
 
 // ---------- types ----------
 
@@ -35,7 +34,6 @@ interface SocialApi extends SocialState {
   hostFriends: (event: TechWeekEvent) => Friend[];
   setGoing: (event: TechWeekEvent, going: boolean, source?: "manual" | "prompt") => Promise<void>;
   openAccount: (then?: () => void) => void;
-  openEvent: (event: TechWeekEvent) => void;
   noteRsvpClick: (event: TechWeekEvent) => void;
 }
 
@@ -47,7 +45,6 @@ const SocialContext = createContext<SocialApi>({
   hostFriends: () => [],
   setGoing: async () => {},
   openAccount: () => {},
-  openEvent: () => {},
   noteRsvpClick: () => {},
 });
 
@@ -95,8 +92,8 @@ export function firstName(name: string): string {
 /** "Priya, Sam +1 going" with overlapping avatars. Renders nothing when empty. */
 export function FriendsGoingRow({ friends, compact = false }: { friends: Friend[]; compact?: boolean }) {
   if (friends.length === 0) return null;
-  const shown = friends.slice(0, 2).map((f) => firstName(f.name));
-  const more = friends.length - shown.length;
+  const names = friends.slice(0, 2).map((f) => firstName(f.name)).join(", ");
+  const label = friends.length === 1 ? `${names} going` : `${friends.length} going · ${names}${friends.length > 2 ? "…" : ""}`;
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex -space-x-1.5">
@@ -104,10 +101,7 @@ export function FriendsGoingRow({ friends, compact = false }: { friends: Friend[
           <Avatar key={f.id} name={f.name} xHandle={f.xHandle} size={compact ? 18 : 22} />
         ))}
       </div>
-      <span className="truncate text-[12px] font-semibold text-[#0A8F5A]">
-        {shown.join(", ")}
-        {more > 0 ? ` +${more}` : ""} going
-      </span>
+      <span className="truncate text-[12px] font-semibold text-[#0A8F5A]">{label}</span>
     </div>
   );
 }
@@ -118,7 +112,6 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SocialState>(EMPTY);
   const [accountOpen, setAccountOpen] = useState(false);
   const afterAccount = useRef<(() => void) | null>(null);
-  const [sheetEvent, setSheetEvent] = useState<TechWeekEvent | null>(null);
   const [invite, setInvite] = useState<{ code: string; inviter: string } | null>(null);
   const [prompt, setPrompt] = useState<TechWeekEvent | null>(null);
   const pendingRsvp = useRef<{ event: TechWeekEvent; at: number } | null>(null);
@@ -214,7 +207,6 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
       hostFriends,
       setGoing,
       openAccount,
-      openEvent: setSheetEvent,
       noteRsvpClick: (event) => {
         pendingRsvp.current = { event, at: Date.now() };
       },
@@ -224,7 +216,6 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
   return (
     <SocialContext.Provider value={api}>
       {children}
-      {sheetEvent && <EventSheet event={sheetEvent} onClose={() => setSheetEvent(null)} />}
       {accountOpen && (
         <AccountModal
           onClose={() => {

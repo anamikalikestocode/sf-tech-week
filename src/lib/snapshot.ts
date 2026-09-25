@@ -53,7 +53,6 @@ export interface EventsResult {
   source: "remote" | "local" | "none";
 }
 
-const REMOTE_TTL_SECONDS = 300;
 
 function remoteUrl(city: CitySlug): string | null {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -65,7 +64,11 @@ async function loadRemote(city: CitySlug): Promise<Snapshot | null> {
   const url = remoteUrl(city);
   if (!url) return null;
   try {
-    const res = await fetch(url, { next: { revalidate: REMOTE_TTL_SECONDS } });
+    // The snapshot is ~11 MB, over Next's 2 MB data-cache limit, so don't try to
+    // cache the response body. The page itself is ISR-cached (revalidate on the
+    // route), and this module memoizes the parsed result per process, so the
+    // remote is hit at most once per cold render, not per request.
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
     const json = (await res.json()) as Snapshot;
     return Array.isArray(json?.events) ? json : null;
