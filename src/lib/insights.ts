@@ -82,7 +82,7 @@ export function extraQuestions(e: TechWeekEvent): NonNullable<PartifulData["ques
   return (e.partiful?.questions ?? []).filter((q) => !isTemplateQuestion(q.text));
 }
 export function questionCount(e: TechWeekEvent): number {
-  return e.partiful?.questions?.length ?? 0;
+  return e.partiful?.questionTotal ?? e.partiful?.questions?.length ?? 0;
 }
 
 const CONSENT = /(consent|agree to|subscribe|receive .*(communications|emails|news|updates)|privacy policy|marketing|opt.?in)/i;
@@ -134,6 +134,8 @@ export const VIBE_LABELS: Record<Vibe, string> = {
 export function vibes(e: TechWeekEvent): Vibe[] {
   const p = e.partiful;
   if (!p) return [];
+  // Precomputed server-side from the untrimmed description when available.
+  if (p.vibeTags) return p.vibeTags as Vibe[];
   const text = `${e.name} ${p.description ?? ""}`;
   const out: Vibe[] = [];
   if (FOOD.test(text)) out.push("food");

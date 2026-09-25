@@ -319,15 +319,12 @@ async function scrapePartiful(url) {
       questionnaireVersions: Array.isArray(ev.questionnaireVersions) ? ev.questionnaireVersions.length : 0,
       customSections: (ev.customSections ?? []).map((c) => ({ title: c.title ?? "", value: (c.value ?? "").slice(0, 1500) })),
       // Who's actually behind it (names + socials; owners link events by the same account).
+      // Host name, id and photo are shown on the public page. Bios and social
+      // handles are marked mutuals-only by Partiful, so they are never stored.
       hostProfiles: (pp.hosts ?? []).map((h) => ({
         id: h.id ?? null,
         name: h.name ?? "",
-        bio: h.bio?.value ?? null,
-        twitter: h.socials?.twitter?.value ?? null,
-        instagram: h.socials?.instagram?.value ?? null,
-        linkedin: h.socials?.linkedin?.value ?? null,
         photoUrl: h.photo?.url ?? null,
-        isManaged: !!h.isManaged,
       })),
       ownerIds: ev.ownerIds ?? [],
       publicShortUrl: ev.publicShortUrl ?? null,

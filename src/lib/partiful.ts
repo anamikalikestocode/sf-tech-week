@@ -91,13 +91,12 @@ export interface PartifulData {
   hostProfiles?: Array<{
     id: string | null;
     name: string;
-    bio: string | null;
-    twitter: string | null;
-    instagram: string | null;
-    linkedin: string | null;
     photoUrl: string | null;
-    isManaged: boolean;
   }>;
+  /** Vibe tags computed server-side from the full description (see snapshot.ts) */
+  vibeTags?: string[];
+  /** Total application questions before the client payload was trimmed */
+  questionTotal?: number;
   ownerIds?: string[];
   publicShortUrl?: string | null;
   calendarFile?: string | null;

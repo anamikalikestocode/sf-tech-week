@@ -4,6 +4,7 @@ import { CITIES, type CitySlug } from "@/lib/cities";
 import type { TechWeekEvent } from "@/lib/events";
 import { EventDirectory } from "@/components/event-directory";
 import { EventCard } from "@/components/event-card";
+import { AccountChip, SocialProvider } from "@/components/social";
 
 function StatCell({
   label,
@@ -18,11 +19,23 @@ function StatCell({
   danger?: boolean;
   title?: string;
 }) {
-  const valueColor = danger ? "text-[#D8442B]" : accent ? "text-[#0A8F5A]" : "text-[#1C1A14]";
+  const valueColor = danger
+    ? "text-[#D8442B]"
+    : accent
+      ? "text-[#0A8F5A]"
+      : "text-[#1C1A14]";
   return (
     <div className="flex flex-col items-center px-5 py-3" title={title}>
-      <span className={"text-xl font-extrabold tabular-nums tracking-[-0.02em] " + valueColor}>{value}</span>
-      <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#766E5C]">{label}</span>
+      <span
+        className={
+          "text-xl font-extrabold tabular-nums tracking-[-0.02em] " + valueColor
+        }
+      >
+        {value}
+      </span>
+      <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#766E5C]">
+        {label}
+      </span>
     </div>
   );
 }
@@ -43,85 +56,125 @@ export async function TechWeekPage({ city: slug }: { city: CitySlug }) {
   // (pending / rejected / waitlisted counts). When it hides them every APPLY
   // event would read 100%, so the stat is dropped rather than shown wrong.
   const rated = applyEvents.filter(
-    (e) => typeof e.partiful?.acceptanceRate === "number" && (e.partiful.appliedCount ?? 0) > e.partiful.approvedCount
+    (e) =>
+      typeof e.partiful?.acceptanceRate === "number" &&
+      (e.partiful.appliedCount ?? 0) > e.partiful.approvedCount,
   );
   const avgAcceptance =
     rated.length > 0
-      ? Math.round((rated.reduce((s, e) => s + (e.partiful!.acceptanceRate as number), 0) / rated.length) * 100)
+      ? Math.round(
+          (rated.reduce(
+            (s, e) => s + (e.partiful!.acceptanceRate as number),
+            0,
+          ) /
+            rated.length) *
+            100,
+        )
       : null;
 
-
   return (
-    <main className="min-h-screen bg-[#E9E2D3]">
-      <div className="border-b border-[#DDD3BD] bg-[#E9E2D3]">
-        <div className="mx-auto max-w-[1200px] px-[22px] pb-3 pt-6 sm:pt-10">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-            <div className="min-w-0">
-              {/* On phones the stats sit on one small line above the title */}
-              {events.length > 0 && (
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#766E5C] sm:hidden">
-                  <span className="tabular-nums normal-case tracking-normal">
-                    <span className="font-extrabold text-[#1C1A14]">{events.length.toLocaleString()}</span> events ·{" "}
-                    <span className="font-extrabold text-[#0A8F5A]">{totalGuests.toLocaleString()}</span> going
-                  </span>
+    <SocialProvider>
+      <main className="min-h-screen bg-[#E9E2D3]">
+        <div className="border-b border-[#DDD3BD] bg-[#E9E2D3]">
+          <div className="mx-auto max-w-[1200px] px-[22px] pb-3 pt-6 sm:pt-10">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+              <div className="min-w-0">
+                {/* On phones the stats sit on one small line above the title */}
+                {events.length > 0 && (
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#766E5C] sm:hidden">
+                    <span className="tabular-nums normal-case tracking-normal">
+                      <span className="font-extrabold text-[#1C1A14]">
+                        {events.length.toLocaleString()}
+                      </span>{" "}
+                      events ·{" "}
+                      <span className="font-extrabold text-[#0A8F5A]">
+                        {totalGuests.toLocaleString()}
+                      </span>{" "}
+                      going
+                    </span>
+                  </div>
+                )}
+
+                <h1
+                  className="font-extrabold leading-[0.98] tracking-[-0.035em] text-[#1C1A14]"
+                  style={{ fontSize: "clamp(36px,5.4vw,60px)" }}
+                >
+                  {city.title}
+                </h1>
+
+                <p className="mt-2 max-w-[600px] text-[15px] leading-[1.45] text-[#766E5C] sm:mt-3 sm:text-base sm:leading-[1.55]">
+                  The a16z tech week website is kinda bad, so here&apos;s a
+                  better one.
+                </p>
+                <p className="mt-1 text-sm font-medium text-[#766E5C] sm:mt-1.5">
+                  x:{" "}
+                  <a
+                    href="https://x.com/anamika__x"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#0A8F5A] underline underline-offset-2 transition-opacity hover:opacity-80"
+                  >
+                    @anamika__x
+                  </a>
+                </p>
+                <AccountChip />
+              </div>
+
+              {/* Stat ticker — beside the title on wider screens; phones get the inline line above */}
+              {events.length > 0 ? (
+                <div className="hidden shrink-0 items-stretch divide-x divide-[#CDC1A6] rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] sm:mt-1 sm:flex">
+                  <StatCell
+                    label="Events"
+                    value={events.length.toLocaleString()}
+                  />
+                  <StatCell
+                    label="Going"
+                    value={totalGuests.toLocaleString()}
+                    accent
+                    title="Confirmed guests across every event with Partiful data"
+                  />
+                  {avgAcceptance !== null && (
+                    <StatCell
+                      label="Avg accepted"
+                      value={`${avgAcceptance}%`}
+                      accent
+                      title={`Across ${rated.length} application events with visible applicant pools`}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] px-5 py-4 text-sm text-[#766E5C]">
+                  No event data loaded yet. Run{" "}
+                  <code className="rounded bg-[#E9E2D3] px-1.5 py-0.5 text-[12px]">
+                    npm run scrape:{slug}
+                  </code>{" "}
+                  to build the snapshot.
                 </div>
               )}
-
-              <h1 className="font-extrabold leading-[0.98] tracking-[-0.035em] text-[#1C1A14]" style={{ fontSize: "clamp(36px,5.4vw,60px)" }}>
-                {city.title}
-              </h1>
-
-              <p className="mt-2 max-w-[600px] text-[15px] leading-[1.45] text-[#766E5C] sm:mt-3 sm:text-base sm:leading-[1.55]">
-                The a16z tech week website is kinda bad, so here&apos;s a better one.
-              </p>
-              <p className="mt-1 text-sm font-medium text-[#766E5C] sm:mt-1.5">
-                x:{" "}
-                <a
-                  href="https://x.com/anamika__x"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#0A8F5A] underline underline-offset-2 transition-opacity hover:opacity-80"
-                >
-                  @anamika__x
-                </a>
-              </p>
             </div>
-
-            {/* Stat ticker — beside the title on wider screens; phones get the inline line above */}
-            {events.length > 0 ? (
-              <div className="hidden shrink-0 items-stretch divide-x divide-[#CDC1A6] rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] sm:mt-1 sm:flex">
-                <StatCell label="Events" value={events.length.toLocaleString()} />
-                <StatCell label="Going" value={totalGuests.toLocaleString()} accent title="Confirmed guests across every event with Partiful data" />
-                {avgAcceptance !== null && (
-                  <StatCell label="Avg accepted" value={`${avgAcceptance}%`} accent title={`Across ${rated.length} application events with visible applicant pools`} />
-                )}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-[#CDC1A6] bg-[#F7F2E7] px-5 py-4 text-sm text-[#766E5C]">
-                No event data loaded yet. Run <code className="rounded bg-[#E9E2D3] px-1.5 py-0.5 text-[12px]">npm run scrape:{slug}</code> to build the snapshot.
-              </div>
-            )}
           </div>
         </div>
-      </div>
 
-      {/*
+        {/*
         EventDirectory uses nuqs (useSearchParams), which opts the subtree out
         of server rendering. Give Suspense a real server-rendered fallback (the
         first 60 events) so browsers that don't finish hydrating (in-app
         browsers opened from a tweet) still see content.
       */}
-      <Suspense fallback={<InitialEventGrid events={events} />}>
-        <EventDirectory events={events} city={city} />
-      </Suspense>
-    </main>
+        <Suspense fallback={<InitialEventGrid events={events} />}>
+          <EventDirectory events={events} city={city} />
+        </Suspense>
+      </main>
+    </SocialProvider>
   );
 }
 
 function InitialEventGrid({ events }: { events: TechWeekEvent[] }) {
   // Match the directory's default sort (most popular) so the server-rendered
   // fallback doesn't reshuffle when the client hydrates.
-  const initial = [...events].sort((a, b) => confirmedCount(b) - confirmedCount(a)).slice(0, 60);
+  const initial = [...events]
+    .sort((a, b) => confirmedCount(b) - confirmedCount(a))
+    .slice(0, 60);
 
   return (
     <div className="min-h-screen bg-[#E9E2D3]">
