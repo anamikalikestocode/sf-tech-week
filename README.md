@@ -150,3 +150,27 @@ event URL) and locked to the service-role key.
 
 Push to GitHub, import into Vercel, set the four env vars from `.env.example`
 plus `NEXT_PUBLIC_SITE_URL`. Nothing else to configure.
+
+### Personal Partiful calendar import
+
+Apply `supabase/migrations/00002_social.sql` if social accounts are not yet
+installed, then `00003_partiful_calendar.sql` and
+`00004_partiful_calendar_sync.sql` before deploying this feature. The latter
+adds atomic service-role-only refresh/disconnect functions and keeps imported
+membership visible even when attendance was entered manually.
+
+Use the existing `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+server environment variables. Calendar links are encrypted with a key derived
+from the service-role secret; rotating that secret requires users to reconnect
+their calendars. Never expose it through a `NEXT_PUBLIC_` variable.
+
+Signed-in users connect through the account modal. Refresh is activity-driven:
+`/api/social` refreshes feeds older than six hours; visible pages recheck social
+data every five minutes and on return to the tab. There is no background cron
+for inactive users. Disconnect removes the connection and calendar-derived
+attendance, preserving manual attendance.
+
+Run `npm test` for parser, encryption, API, refresh and visibility tests.
+`npm run test:calendar-db` requires PostgreSQL binaries (`initdb`, `pg_ctl`,
+`psql`) and runs transaction/idempotency/removal tests against a disposable local
+cluster; it does not use the application's database or environment secrets.

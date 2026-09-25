@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "scrape": "node scripts/scrape-techweek.mjs sf",
-    "scrape:smoke": "node scripts/scrape-techweek.mjs sf --limit 40 --no-upload"
+    "scrape:smoke": "node scripts/scrape-techweek.mjs sf --limit 40 --no-upload",
+    "test": "node --test tests/*.test.mjs",
+    "test:calendar-db": "bash tests/run-calendar-db.sh"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.79",

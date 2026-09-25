@@ -20,7 +20,12 @@ export interface Friend {
   pfProfileId: string | null;
 }
 
+interface PartifulStatus { connected: boolean; lastSyncedAt: string | null; eventCount: number }
+const NO_PARTIFUL: PartifulStatus = { connected: false, lastSyncedAt: null, eventCount: 0 };
+
 interface SocialState {
+  inPartiful: Set<string>;
+  partiful: PartifulStatus;
   enabled: boolean;
   me: Me | null;
   friends: Friend[];
@@ -37,7 +42,7 @@ interface SocialApi extends SocialState {
   noteRsvpClick: (event: TechWeekEvent) => void;
 }
 
-const EMPTY: SocialState = { enabled: false, me: null, friends: [], friendsById: new Map(), going: {}, mine: new Set() };
+const EMPTY: SocialState = { inPartiful: new Set(), partiful: NO_PARTIFUL, enabled: false, me: null, friends: [], friendsById: new Map(), going: {}, mine: new Set() };
 
 const SocialContext = createContext<SocialApi>({
   ...EMPTY,
@@ -129,6 +134,8 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
         friendsById: new Map(friends.map((f) => [f.id, f])),
         going: j.going ?? {},
         mine: new Set<string>(j.mine ?? []),
+        inPartiful: new Set<string>(j.inPartiful ?? []),
+        partiful: j.partiful ?? NO_PARTIFUL,
       });
     } catch {
       /* social is best-effort; the directory works without it */
@@ -137,6 +144,12 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     void load();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 5 * 60 * 1000);
+    const onVisible = () => { if (document.visibilityState === "visible") void load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
   }, [load]);
 
   // Invite links: /?f=<code>
@@ -402,6 +415,8 @@ function AccountModal({ onClose, onSignedIn }: { onClose: () => void; onSignedIn
         </div>
       </div>
 
+      <PartifulConnection onChanged={onSignedIn} />
+
       <div className="mt-4 rounded-[12px] border border-[#DDD3BD] bg-[#E9E2D3]/50 p-3">
         <p className="text-[12px] font-semibold text-[#1C1A14]">Your invite link</p>
         <p className="mt-0.5 text-[12px] text-[#766E5C]">Anyone who opens it and accepts becomes your friend here.</p>
@@ -458,6 +473,52 @@ function AccountModal({ onClose, onSignedIn }: { onClose: () => void; onSignedIn
         Sign out
       </button>
     </Overlay>
+  );
+}
+
+function PartifulConnection({ onChanged }: { onChanged: () => Promise<void> }) {
+  const { partiful } = useSocial();
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [reward, setReward] = useState("");
+  async function submit(disconnect = false) {
+    setBusy(true); setError(""); setReward("");
+    try {
+      const response = await fetch("/api/partiful", {
+        method: disconnect ? "DELETE" : "POST",
+        headers: { "content-type": "application/json" },
+        ...(disconnect ? {} : { body: JSON.stringify({ url }) }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Something went wrong. Try again.");
+      setUrl("");
+      if (!disconnect) setReward(`Found ${data.matched} of your Tech Week events`);
+      await onChanged();
+    } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Try again."); }
+    finally { setBusy(false); }
+  }
+  return (
+    <section className="mt-4 rounded-[12px] border border-[#DDD3BD] bg-[#E9E2D3]/50 p-3">
+      <h3 className="text-[14px] font-bold text-[#0A8F5A]">{partiful.connected ? "Partiful ✓ Connected" : "Connect your Partiful"}</h3>
+      {partiful.connected ? <>
+        <p className="mt-1 text-[12px] text-[#766E5C]">{partiful.lastSyncedAt ? `Last synced ${new Date(partiful.lastSyncedAt).toLocaleString()}` : "Awaiting a successful sync"}</p>
+        <button disabled={busy} onClick={() => void submit(true)} className="mt-2 text-[12px] text-[#766E5C] underline disabled:opacity-40">{busy ? "Disconnecting…" : "Disconnect Partiful"}</button>
+      </> : <form className="mt-2 flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+        <p className="text-[13px] text-[#766E5C]">See your events and discover where people you know are going.</p>
+        <p className="text-[12px] text-[#766E5C]">In Partiful, open Calendar Sync → Copy Link, then paste it here.</p>
+        <input aria-label="Partiful Calendar Sync URL" className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="webcal://calendars.partiful.com/…" autoComplete="off" spellCheck={false} disabled={busy} />
+        <button type="button" disabled={busy} className="text-left text-[12px] text-[#0A8F5A] underline" onClick={async () => {
+          try {
+            if (!navigator.clipboard?.readText) throw new Error("unavailable");
+            setUrl(await navigator.clipboard.readText()); setError("");
+          } catch { setError("Clipboard access isn't available. Paste the link into the field."); }
+        }}>Paste from clipboard</button>
+        <button className={primaryBtn} disabled={busy || !url.trim()}>{busy ? "Connecting…" : "Connect Partiful"}</button>
+      </form>}
+      {reward && <p role="status" className="mt-2 text-[13px] font-semibold text-[#0A8F5A]">{reward}</p>}
+      {error && <p role="alert" className="mt-2 text-[12px] text-[#D8442B]">{error}</p>}
+    </section>
   );
 }
 

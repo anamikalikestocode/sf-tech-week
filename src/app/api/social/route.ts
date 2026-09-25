@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { currentUser, db, socialEnabled } from "@/lib/auth";
 
+import { getConnection, refreshIfStale } from "@/lib/partiful-calendar";
+
 // Everything the page needs for the viewer, in one request:
 //   me, friends (with Partiful profile ids for "Hosted by a friend"),
 //   which events each friend is going to, and the viewer's own RSVPs.
@@ -11,6 +13,11 @@ export async function GET() {
   const me = await currentUser();
   if (!me) return NextResponse.json({ enabled: true, me: null });
 
+  let connection;
+  try {
+    await refreshIfStale(me.id);
+    connection = await getConnection(me.id);
+  } catch { /* Preserve social functionality if calendar storage is unavailable. */ }
   const client = db();
   const [{ data: asA }, { data: asB }, { data: mine }] = await Promise.all([
     client.from("sf_friendships").select("user_b").eq("user_a", me.id),
@@ -40,6 +47,8 @@ export async function GET() {
     me,
     friends: friends.map((f) => ({ id: f.id, name: f.name, xHandle: f.x_handle, pfProfileId: f.visibility === "friends" ? f.pf_profile_id : null })),
     going,
+    inPartiful: connection?.inPartiful ?? [],
+    partiful: connection?.status ?? { connected: false, lastSyncedAt: null, eventCount: 0 },
     mine: (mine ?? []).map((r) => r.event_id),
   });
 }

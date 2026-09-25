@@ -101,6 +101,8 @@ export function EventCard({ event }: { event: TechWeekEvent }) {
         {formatDate(event.date)} · {timeRange(event)} · {place}
       </div>
 
+      {social.inPartiful.has(event.id) && <p className="text-[12px] font-semibold text-[#0A8F5A]">✓ In your Partiful</p>}
+
       {(friends.length > 0 || hostFriends.length > 0) && (
         <div className="flex flex-col gap-1">
           {hostFriends.length > 0 && (
