@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { streamText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -184,32 +185,28 @@ export async function POST(req: Request) {
 
     console.log(`[chat] ${new Date().toISOString()} city=${city} q=${JSON.stringify(query)}`);
 
-    // Fire-and-forget: logging must NEVER block or break the chat response.
-    // The try/catch guards against synchronous throws too (e.g. a missing
-    // SUPABASE env var makes createAdminClient() throw immediately).
+    // after() runs once the response is sent and keeps the function alive
+    // until the insert finishes (a bare fire-and-forget promise can be frozen
+    // mid-flight on Vercel and the row silently lost). Logging never blocks or
+    // breaks the chat response.
     if (query.length > 0) {
-      try {
-        // Two-arg .then handles both the resolved {error} and a rejection.
-        // Supabase's builder is a PromiseLike (no .catch), so we can't chain.
-        void createAdminClient()
-          .from("sf_chat_queries")
-          .insert({
-            query,
-            turn_index: turnIndex,
-            // Anonymous first-party session id (random UUID from the visitor's
-            // localStorage) so turns group into conversations. No PII.
-            session_id:
-              typeof sessionId === "string" ? sessionId.slice(0, 64) : null,
-          })
-          .then(
-            ({ error }) => {
-              if (error) console.error("[chat] log insert failed:", error.message);
-            },
-            (e) => console.error("[chat] log insert threw:", e)
-          );
-      } catch (e) {
-        console.error("[chat] logging skipped:", e);
-      }
+      after(async () => {
+        try {
+          const { error } = await createAdminClient()
+            .from("sf_chat_queries")
+            .insert({
+              query,
+              turn_index: turnIndex,
+              // Anonymous first-party session id (random UUID from the visitor's
+              // localStorage) so turns group into conversations. No PII.
+              session_id:
+                typeof sessionId === "string" ? sessionId.slice(0, 64) : null,
+            });
+          if (error) console.error("[chat] log insert failed:", error.message);
+        } catch (e) {
+          console.error("[chat] logging skipped:", e);
+        }
+      });
     }
   }
 
