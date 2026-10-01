@@ -104,7 +104,7 @@ export const CITIES: Record<CitySlug, CityConfig> = {
     neighborhoods: [],
     suggestedPrompts: [
       "Where can I bring a +1 and get free food?",
-      "Are there any open bars?",
+      "What's in legal tech?",
       "Hardest events to get into?",
     ],
     officialUrl: "https://www.tech-week.com/calendar/sf",
